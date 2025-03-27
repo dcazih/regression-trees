@@ -2,6 +2,7 @@
 
 import numpy as np
 
+###################################### PART 1 #################################
 # Class to represent a node in the regression tree
 class Node:
     def __init__(self, feature=None, threshold=None, left=None, right=None, value=None, depth=0):
@@ -99,27 +100,22 @@ class RegressionTree:
         return Node(feature, threshold, left_child, right_child, depth=depth)
     
     # Function to traverse tree for prediction and path (Step 3 in Notes Algorithm)
-    def _traverse(self, node, x, path=None):
-        if path is None:
-            path = []
+    def _traverse(self, node, x):
         # Check if node is a leaf
         if node.value is not None:
-            return node.value, path
+            return node.value
         
         # Decide left or right traversal based on feature
         if x[node.feature] <= node.threshold:
-            path.append(f"X[{node.feature}] <= {node.threshold}")
-            return self._traverse(node.left, x, path)
-        
+            return self._traverse(node.left, x)
         else:
-            path.append(f"X[{node.feature}] > {node.threshold}")
-            return self._traverse(node.right, x, path)
+            return self._traverse(node.right, x)
 
     # Function to predict value for input
     def predict(self, x):
-        return self._traverse(self.root, np.array(x))[0]
+        return self._traverse(self.root, np.array(x))
+    
+###############################################################################
+###################################### PART 2 #################################
 
-    # Function to return path for input
-    def decision_path(self, x):
-        _, path = self._traverse(self.root, np.array(x))
-        return path
+
