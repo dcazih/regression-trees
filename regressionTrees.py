@@ -191,4 +191,35 @@ for size in leaf_sizes:
     print("Test Error:", error3)
     print("Time Cost:", build_time3)
 
-    
+###############################################################################
+###################################### PART 3 #################################
+## Generate Data
+# Sample number
+N = 500
+# Inputs
+xk = np.random.uniform(0, 100, N)
+vk = np.full(N, 10.0)
+# Shape of (N,2)
+X = np.stack((xk, vk), axis=1)
+# Outputs
+xk_plus1 = xk + 0.1 * vk
+vk_plus1 = np.full(N, 10.0)
+# Use Regression Tree to make predictions
+tree_x = RegressionTree(X, xk_plus1)  
+tree_v = RegressionTree(X, vk_plus1) 
+# Helper function to predict the next state on the tree
+def predict_next_state(xk, vk):
+    state = [xk, vk]
+    x_next = tree_x.predict(state)
+    v_next = tree_v.predict(state)
+    return [x_next, v_next]
+
+# Print some tester results to see how good the predictions are
+# Can change values to test different states
+print("Current state: (50, 10)")
+predicted_state = predict_next_state(50, 10)
+print("Predicted next state:", predicted_state)
+next_state = [50 + 0.1 * 10, 10]
+print("True next state:     ", next_state)
+error = np.array(predicted_state) - np.array(next_state)
+print("Error of Prediction: ", error)
