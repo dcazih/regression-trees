@@ -1,6 +1,9 @@
 # Regression Trees Midterm
 
 import numpy as np
+import time
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 ###################################### PART 1 #################################
 # Class to represent a node in the regression tree
@@ -118,4 +121,74 @@ class RegressionTree:
 ###############################################################################
 ###################################### PART 2 #################################
 
+# Part a
+# 100 uniformly distributed samples on the domain x [-3, 3]
+X = np.linspace(-3, 3, 100).reshape(-1, 1)
+# Continous y = 0.8 sin(x - 1) function
+y = 0.8 * np.sin(X - 1).ravel()
+# 80 20 split with Scikit-Learn
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+# keep track of time cost of building the tree
+start_time1 = time.time()
+tree = RegressionTree(X_train, y_train)
+end_time1 = time.time()
+# predict on the test set and keep track of the error
+y_pred1 = [tree.predict(x) for x in X_test]
+error1 = mean_squared_error(y_test, y_pred1)
+build_time1 = end_time1 - start_time1
+# helper function for testing the height of the regression tree
+def get_tree_height(node):
+    # Basic recursion function to count tree levels
+    if node is None or node.value is not None:
+        return 0
+    return 1 + max(get_tree_height(node.left), get_tree_height(node.right))
+# call the helper, keep track of height
+tree_height1 = get_tree_height(tree.root)
+# Print Results
+print("Part a - Limitless Tree")
+print("Tree Height:", tree_height1)
+print("Test Error:", error1)
+print("Time Cost:", build_time1)
+
+# Part b
+# Test another tree that is half the height
+half_height = int(tree_height1 * 0.5)
+# Do the same as part a with this new tree
+# keep track of time cost of building the tree
+start_time2 = time.time()
+tree_half = RegressionTree(X_train, y_train, max_depth=half_height)
+end_time2 = time.time()
+# predict on the test set and keep track of the error
+y_pred2 = [tree_half.predict(x) for x in X_test]
+error2 = mean_squared_error(y_test, y_pred2)
+build_time2 = end_time2 - start_time2
+# call the helper, keep track of height
+tree_height2 = get_tree_height(tree_half.root)
+# Print Results
+print("Part b - Half height tree")
+print("Tree Height:", tree_height2)
+print("Test Error:", error2)
+print("Time Cost:", build_time2)
+
+# Part c
+# Leaf size limits
+leaf_sizes = [2, 4, 8]
+# Loop through leaf sizes to test each limit
+for size in leaf_sizes:
+    start_time3 = time.time()
+    tree_leaf = RegressionTree(X_train, y_train, min_leaf_size=size, control='leaf_size')
+    end_time3 = time.time()
+    # predict on the test set and keep track of the error
+    y_pred3 = [tree_leaf.predict(x) for x in X_test]
+    error3 = mean_squared_error(y_test, y_pred3)
+    build_time3 = end_time3 - start_time3
+    # call the helper, keep track of height
+    tree_height3 = get_tree_height(tree_leaf.root)
+    # Print Results
+    print("Part c - Leaf Size Limit {size}")
+    print("Tree Height:", tree_height3)
+    print("Test Error:", error3)
+    print("Time Cost:", build_time3)
+
+    
