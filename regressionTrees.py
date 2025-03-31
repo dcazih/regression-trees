@@ -29,7 +29,7 @@ class RegressionTree:
         # build tree from root
         self.root = self._build_tree(np.array(X), np.array(y), depth=0)
 
-    # Function to calculate the sum of squared errors
+    # Function to calculate the sum of squared errors for a feature
     def _sum_squared_errors(self, y):
         # If no samples
         if len(y) == 0:
@@ -118,6 +118,23 @@ class RegressionTree:
     def predict(self, x):
         return self._traverse(self.root, np.array(x))
     
+    # Function to display the decision path of agiven input value
+    def decision_path(self, x):
+        path = []
+        node = self.root
+        # While there are still nodes
+        while node.value is None:
+            feature = node.feature
+            threshold = node.threshold
+            # Print the feature that is selected
+            if x[feature] <= threshold:
+                path.append(f"X[{feature}] <= {threshold}")
+                node = node.left
+            else:
+                path.append(f"X[{feature}] > {threshold}")
+                node = node.right
+        return path
+    
 ###############################################################################
 ###################################### PART 2 #################################
 
@@ -186,7 +203,7 @@ for size in leaf_sizes:
     # call the helper, keep track of height
     tree_height3 = get_tree_height(tree_leaf.root)
     # Print Results
-    print("Part c - Leaf Size Limit {size}")
+    print("Part c - Leaf Size Limit ", size)
     print("Tree Height:", tree_height3)
     print("Test Error:", error3)
     print("Time Cost:", build_time3)
@@ -216,10 +233,10 @@ def predict_next_state(xk, vk):
 
 # Print some tester results to see how good the predictions are
 # Can change values to test different states
-print("Current state: (50, 10)")
-predicted_state = predict_next_state(50, 10)
+print("Current state: (99, 10)")
+predicted_state = predict_next_state(99, 10)
 print("Predicted next state:", predicted_state)
-next_state = [50 + 0.1 * 10, 10]
+next_state = [99 + 0.1 * 10, 10]
 print("True next state:     ", next_state)
 error = np.array(predicted_state) - np.array(next_state)
 print("Error of Prediction: ", error)
