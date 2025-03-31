@@ -2,6 +2,7 @@
 
 import numpy as np
 import time
+import matplotlib.pyplot as plt 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
@@ -240,3 +241,207 @@ next_state = [99 + 0.1 * 10, 10]
 print("True next state:     ", next_state)
 error = np.array(predicted_state) - np.array(next_state)
 print("Error of Prediction: ", error)
+
+
+
+
+
+###############################################################################
+###################################### PART 4 #################################
+
+
+#### PART A
+print("\n\nPART 4")
+print("\nCase Study 1")
+### Generate Sample Data for Dynamic System
+x1 = np.random.uniform(-5, 5, N)
+x2 = np.random.uniform(-5, 5, N)
+
+x1_next = 0.9 * x1 - 0.2 * x2
+x2_next = 0.2 * x1 + 0.9 * x2
+
+X = np.column_stack((x1, x2))     
+Y = np.column_stack((x1_next, x2_next))  
+
+# Split the data into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+
+### Create Regression Trees
+# reg1: learns the mapping (x(1),x(2))→ x′(1)(x(1), x(2))→ x′(1)
+# reg2: learns the mapping (x(1),x(2))→ x′(2)(x(1), x(2))→ x′(2)
+tree_depth = 15
+leaf_sizes = 4
+reg_tree_x1 = RegressionTree (X_train, Y_train[:, 0], tree_depth, leaf_sizes)
+reg_tree_x2 = RegressionTree(X_train, Y_train[:, 1], tree_depth, leaf_sizes)
+
+
+### Perform Testing
+# Predict each dimension on test samples
+y1_pred = np.array([reg_tree_x1.predict(x) for x in X_test])
+y2_pred = np.array([reg_tree_x2.predict(x) for x in X_test])
+
+# take mean squared error for each dimension and print
+mse_x1 = mean_squared_error(Y_test[:, 0], y1_pred)
+mse_x2 = mean_squared_error(Y_test[:, 1], y2_pred)
+print(f"MSE of x'(1): {mse_x1:.4f}")
+print(f"MSE of x'(2): {mse_x2:.4f}")
+
+### Perform  Simulation
+# State Predictors: Model and True Predictors
+def predict_next_state(x1, x2):
+    return reg_tree_x1.predict([x1, x2]), reg_tree_x2.predict([x1, x2])
+
+def true_next_state(x1, x2):
+    return (0.9 * x1 - 0.2 * x2, 0.2 * x1 + 0.9 * x2)
+
+T = 20 # steps T = 0, 1, ..., 20
+
+x1_0, x2_0 = (0.5, 1.5) # set initial conditions
+
+# Set initial states
+predicted_trajectory = np.zeros((T + 1, 2))
+predicted_trajectory[0] = [x1_0, x2_0]
+
+true_trajectory = np.zeros((T+1, 2))
+true_trajectory[0] = [x1_0, x2_0]
+
+# Run Simulation
+for t in range(T):
+    x1_pred, x2_pred = predict_next_state(predicted_trajectory[t,0], predicted_trajectory[t,1])
+    predicted_trajectory[t+1] = [x1_pred, x2_pred]
+
+    x1_true, x2_true = true_next_state(true_trajectory[t,0],
+                                       true_trajectory[t,1])
+    true_trajectory[t+1] = [x1_true, x2_true]
+
+# Plot  final states 
+print("Final predicted state:", predicted_trajectory[-1])
+print("Final true state:     ", true_trajectory[-1])
+plt.figure(figsize=(6,6))
+plt.plot(true_trajectory[:,0], true_trajectory[:,1], 'o--', label='True Trajectory')
+plt.plot(predicted_trajectory[:,0], predicted_trajectory[:,1], 's--', label='Predicted Trajectory')
+plt.xlabel('x(1)')
+plt.ylabel('x(2)')
+plt.title('Phase Plot of True vs. Predicted Trajectory')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+#### PART B
+### Generate Sample Data for Program State Prediction
+N = 1000
+x_vals = np.random.uniform(-3, 3, N)
+z_vals = np.random.uniform(0, 15, N)
+
+# Simulate the program to get next states
+def oneStep_in_program(x, z):
+    new_x = 0 if x > 1 else x + 0.2
+    new_z = z + new_x
+    return new_x, new_z
+
+# Generate next states
+next_states = np.array([oneStep_in_program(x, z) for x, z in zip(x_vals, z_vals)])
+X = np.column_stack((x_vals, z_vals))
+Y = next_states
+
+# Split data
+X_train_p, X_test_p, Y_train_p, Y_test_p = train_test_split(X, Y, test_size=0.2)
+
+
+### Create Regression Trees
+tree_depth = 15
+leaf_sizes = 4
+reg_tree_x = RegressionTree(X_train_p, Y_train_p[:, 0], tree_depth, leaf_sizes)
+reg_tree_z = RegressionTree(X_train_p, Y_train_p[:, 1], tree_depth, leaf_sizes)
+
+
+### Run Simulation
+# Predict each dimension on test samples x and z
+def predict_program_state(x, z):
+    return reg_tree_x.predict([x, z]), reg_tree_z.predict([x, z])
+
+# Initialize parameters
+T = 20
+x0, z0 = 2.0, 0.0
+predicted_trajectory = np.zeros((T+1, 2))
+predicted_trajectory[0] = [x0, z0]
+true_trajectory = np.zeros((T+1, 2))
+true_trajectory[0] = [x0, z0]
+
+# Run simulation
+for t in range(T):
+    x_pred, z_pred = predict_program_state(predicted_trajectory[t,0], predicted_trajectory[t,1])
+    predicted_trajectory[t+1] = [x_pred, z_pred] 
+
+    x_true, z_true = oneStep_in_program(true_trajectory[t,0], true_trajectory[t,1])
+    true_trajectory[t+1] = [x_true, z_true]
+
+# Plot results
+plt.figure(figsize=(12,5))
+plt.subplot(1,2,1)# x trajectory
+plt.plot(range(T+1), true_trajectory[:,0], 'o-', label='True x')
+plt.plot(range(T+1), predicted_trajectory[:,0], 's--', label='Predicted x')
+plt.xlabel('Iteration')
+plt.ylabel('x value')
+plt.title('x Variable Trajectory')
+plt.legend() 
+plt.grid(True)
+plt.subplot(1,2,2)# z trajectory
+plt.plot(range(T+1), true_trajectory[:,1], 'o-', label='True z')
+plt.plot(range(T+1), predicted_trajectory[:,1], 's--', label='Predicted z')
+plt.xlabel('Iteration')
+plt.ylabel('z value')
+plt.title('z Variable Trajectory')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+#### PART C
+
+def tune_hyperparameters(X_train, Y_train, X_test, Y_test):
+    print("\n=========================Tuning Hyperparameters=========================")
+    param_grid = {
+        'max_depth': [3, 5, 7, 10, 15, 20, None],
+        'min_leaf_size': [1, 2, 4, 8, 16]
+    }
+    results = []
+
+    for depth in param_grid['max_depth']:
+        for leaf_size in param_grid['min_leaf_size']:
+            start_time = time.time()
+            
+            # Train models in both dimensions
+            model_x = RegressionTree(X_train, Y_train[:,0], max_depth=depth, 
+                                    min_leaf_size=leaf_size)
+            model_z = RegressionTree(X_train, Y_train[:,1], max_depth=depth,
+                                    min_leaf_size=leaf_size)
+            
+            build_time = time.time() - start_time
+            
+            # Make predictions
+            y_pred_x = [model_x.predict(x) for x in X_test]
+            y_pred_z = [model_z.predict(x) for x in X_test]
+            
+            # find MSE
+            mse_x = mean_squared_error(Y_test[:,0], y_pred_x)
+            mse_z = mean_squared_error(Y_test[:,1], y_pred_z)
+            avg_mse = (mse_x + mse_z)/2
+            
+            print(f"Depth: {str(depth).ljust(4)}, Leaf: {str(leaf_size).ljust(2)} "f"| MSE: {avg_mse:.4f} (x: {mse_x:.4f}, z: {mse_z:.4f}) "f"| Time: {build_time:.2f}s")
+    
+    # Show best parameters
+    print("\nBest Parameters:")
+    print(f"Depth: {depth}, Leaf Size: {leaf_size}")
+    print(f"Average MSE: {avg_mse:.4f}")
+    print(f"Build Time: {build_time:.2f}s")
+ 
+
+# Run tuning for both systems
+print("\n Dyamical System Prediction")
+tune_hyperparameters(X_train, Y_train, X_test, Y_test)
+
+print("\n Program State Prediction")
+tune_hyperparameters(X_train_p, Y_train_p, X_test_p, Y_test_p)
